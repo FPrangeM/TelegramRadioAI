@@ -22,6 +22,7 @@ cur = con.cursor()
 
 # cur.executemany("INSERT INTO countries VALUES(?, ?, ?)", df_c.values)
 # con.commit()
+# con.commit()
 
 
 

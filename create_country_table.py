@@ -15,8 +15,8 @@ from curl_cffi import AsyncSession
 # Coletar: continente, pais, url, codigo
 
 # Conectar ao banco de dados SQLite
-# conn = sqlite3.connect("tutorial.db")
-# cursor = conn.cursor()
+con = sqlite3.connect("project.db")
+cur = con.cursor()
 
 # Configurações da requisição HTTP
 url = "https://instant.audio"
@@ -53,25 +53,25 @@ for continent_box in continent_boxes:
 
 
 # Coletar codigo dos paises
-async def fetch_country_code(url, session):
+async def fetch_country_code(country_data, session):
     headers = {
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       "Accept": "*/*",
       "Accept-Encoding": "gzip, deflate, br",
     }
-    response = await session.get(url, headers=headers)
+    response = await session.get(country_data['url'], headers=headers)
     if response.status_code != 200:
         return None
     soup = BeautifulSoup(response.content, features="html.parser")
     el = soup.find('link',{'as':"fetch",'type':"application/json",'crossorigin':"anonymous"})
     country_code = el['href'].split('streams/')[1].split('/')[0]
-
+    print(f'Coleta finalizada: {country_data['country']}')
     return country_code
     
 
 async def main(countries_data):
     async with AsyncSession(impersonate="chrome120") as session:
-        tasks = [fetch_country_code(country['url'], session) for country in countries_data]
+        tasks = [fetch_country_code(country_data, session) for country_data in countries_data]
         results = await asyncio.gather(*tasks)
 
     return [{'country': country['country'],'code': code} for country, code in zip(countries_data, results)]
@@ -87,6 +87,12 @@ for data, code in zip(countries_data, country_codes):
 # Criar DataFrame com os dados coletados
 df_countries = pd.DataFrame(countries_data)
 
-print(df_countries)
+# Salvar no banco de dados e na pasta local
+cur.execute(f"create table countries({','.join(df_countries.columns)})")
+con.commit()
+cur.executemany("INSERT INTO countries VALUES(?,?,?,?)", df_countries.values)
+con.commit()
 
-# conn.close()
+df_countries.to_csv('Data/countries.csv',index=False)
+
+con.close()
