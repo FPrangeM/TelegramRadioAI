@@ -34,39 +34,39 @@ cur = con.cursor()
 
 # # Coletar url de cada pais
 
-# df_c = pd.DataFrame(columns=['Contnent','Country','url'])
+df_c = pd.DataFrame(columns=['Contnent','Country','url'])
 
-# url = 'https://instant.audio'
+url = 'https://instant.audio'
 
-# headers = {
-#   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-#   "Accept": "*/*",
-#   "Accept-Encoding": "gzip, deflate, br",
-# }
-# req = cc_requests.get(url,headers=headers,impersonate="chrome120")
-# soup = BeautifulSoup(req.content,features='html.parser')
+headers = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "Accept": "*/*",
+  "Accept-Encoding": "gzip, deflate, br",
+}
+req = cc_requests.get(url,headers=headers,impersonate="chrome120")
+soup = BeautifulSoup(req.content,features='html.parser')
 
-# country_section = soup.find('section',{'class':"country-section"})
-# contnents_box = country_section.find_all('div',{'class':"box active"})
+country_section = soup.find('section',{'class':"country-section"})
+contnents_box = country_section.find_all('div',{'class':"box active"})
 
 
 
-# i = 0
-# for contnent_box in contnents_box:
+i = 0
+for contnent_box in contnents_box:
 
-#   contnent_name = contnent_box.strong.a.text
-#   countries_box = contnent_box.find('ul',{'class':"country-list"})
-#   countries_el = countries_box.find_all('li')
+  contnent_name = contnent_box.strong.a.text
+  countries_box = contnent_box.find('ul',{'class':"country-list"})
+  countries_el = countries_box.find_all('li')
 
-#   for countrie_el in countries_el:
+  for countrie_el in countries_el:
 
-#     country_url = countrie_el.a['href']
-#     country_name = countrie_el.a.text
+    country_url = countrie_el.a['href']
+    country_name = countrie_el.a.text
 
-#     df_c.loc[i] = [contnent_name,country_name,country_url]
-#     i+=1
+    df_c.loc[i] = [contnent_name,country_name,country_url]
+    i+=1
 
-# df_c
+df_c
 
 
 
