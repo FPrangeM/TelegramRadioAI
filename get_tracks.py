@@ -1,11 +1,8 @@
 from bs4 import BeautifulSoup
-import time
 import pandas as pd
-from curl_cffi import requests as cc_requests
 import sqlite3
 import asyncio
 from curl_cffi import AsyncSession
-import json
 
 
 

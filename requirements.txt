@@ -1,0 +1,4 @@
+beautifulsoup4
+pandas
+curl_cffi
+sqlite3
