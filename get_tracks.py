@@ -62,9 +62,21 @@ df_tracks=pd.DataFrame(tracks)
 con = sqlite3.connect("project.db")
 cur = con.cursor()
 
+
+cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
+tabelas = [t[0] for t in cur.fetchall()]
+
+
+if 'tracks' not in tabelas:
+    cur.execute(f"create table tracks({','.join(df_tracks.columns)})")
+    con.commit()
+
+if 'tracks_consolidada' not in tabelas:
+    cur.execute(f"create table tracks_consolidada({','.join(df_tracks.columns)})")
+    con.commit()
+
+
 # Salvar no banco de dados e na pasta local
-# cur.execute(f"create table tracks({','.join(df_tracks.columns)})")
-# con.commit()
 
 cur.execute("DELETE FROM tracks")
 con.commit()
@@ -76,10 +88,6 @@ cur.execute("""
     EXCEPT
     SELECT * FROM tracks_consolidada""")
 con.commit()
-
-# df_tracks.to_csv('Data/tracks.csv',index=False)
-# df_tracks.to_parquet('Data/tracks.parquet',index=False)
-# df_tracks.to_feather('Data/tracks.feather')
 
 con.close()
 
