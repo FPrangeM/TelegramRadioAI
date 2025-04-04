@@ -1,4 +1,3 @@
 beautifulsoup4
 pandas
-curl_cffi
-sqlite3
+curl_cffi   

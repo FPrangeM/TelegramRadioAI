@@ -21,31 +21,49 @@ with sqlite3.connect('project.db') as con:
 
 # Coletar estações de cada pais
 
-async def fetch_station_data(record,session):
+async def fetch_station_data(record, session, max_retries=3, retry_delay=5):
     record = record._asdict()
     
-    print(f'Inicido: {record['country']}')
+    print(f'Iniciado: {record["country"]}')
     headers = {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      "Accept": "*/*",
-      "Accept-Encoding": "gzip, deflate, br",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate, br",
     }
-    response = await session.get(record['url'], headers=headers)
-    if response.status_code != 200:
-        return None
 
-    soup = BeautifulSoup(response.content, features="html.parser")
+    for attempt in range(max_retries):
+        try:
+            response = await session.get(record['url'], headers=headers)
+            
+            if response.status_code != 200:
+                raise Exception(f"Status code {response.status_code}")
+                
+            soup = BeautifulSoup(response.content, features="html.parser")
+            station_el = soup.find('ul', id='radios').find_all('li')
+            station_el = [item for item in station_el if 'hidden' not in item.get('class', [])]
+            
+            station_url = [est.a['href'].replace('#', '') for est in station_el]
+            station_names = [est.split('/')[-1] for est in station_url]
+            station_api_urls = [f'https://api.instant.audio/data/playlist/{record["code"]}/{station_name}' 
+                              for station_name in station_names]
 
-    station_el = soup.find('ul',id='radios').find_all('li')
-    station_el = [item for item in station_el if 'hidden' not in item.get('class', [])]
-    
-    station_url = [est.a['href'].replace('#','') for est in station_el]
-    station_names = [est.split('/')[-1] for est in station_url]
-    station_api_urls = [f'https://api.instant.audio/data/playlist/{record['code']}/{station_name}' for station_name in station_names]
-
-    estations_data = [{'country':record['country'],'station_name':name,'url':url,'api_url':api_url} for name,url,api_url in zip(station_names,station_url,station_api_urls)]
-    print(f'{record['country']} fetched')
-    return estations_data
+            stations_data = [{
+                'country': record['country'],
+                'station_name': name,
+                'url': url,
+                'api_url': api_url
+            } for name, url, api_url in zip(station_names, station_url, station_api_urls)]
+            
+            print(f'{record["country"]} fetched')
+            return stations_data
+            
+        except Exception as e:
+            if attempt == max_retries - 1:  # Última tentativa
+                print(f'Falha após {max_retries} tentativas para {record["country"]}: {str(e)}')
+                return None
+                
+            print(f'Tentativa {attempt + 1} falhou para {record["country"]}. Tentando novamente em {retry_delay} segundos...')
+            await asyncio.sleep(retry_delay)
 
 async def main(df_countries):
     async with AsyncSession(impersonate="chrome120") as session:
@@ -74,6 +92,6 @@ con.commit()
 cur.executemany("INSERT INTO stations VALUES(?,?,?,?)", df_stations.values)
 con.commit()
 
-df_stations.to_csv('Data/stations.csv',index=False)
+# df_stations.to_csv('Data/stations.csv',index=False)
 
 con.close()

@@ -15,19 +15,32 @@ with sqlite3.connect('project.db') as con:
 
 
 # Coletar json de cada station
-async def fetch_station_json(record,session):
+async def fetch_station_json(record, session, max_retries=3, retry_delay=5):
     record = record._asdict()
     
     headers = {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      "Accept": "*/*",
-      "Accept-Encoding": "gzip, deflate, br",
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate, br",
     }
-    response = await session.get(record['api_url'], headers=headers)
-    if response.status_code != 200:
-        return None
 
-    return response.json().get('result',[])
+    for attempt in range(max_retries):
+        try:
+            response = await session.get(record['api_url'], headers=headers)
+            
+            if response.status_code != 200:
+                raise Exception(f"Status code {response.status_code}")
+                
+            json_data = response.json()
+            return json_data.get('result', [])
+            
+        except Exception as e:
+            if attempt == max_retries - 1:  # Última tentativa
+                print(f'Falha após {max_retries} tentativas para {record.get("api_url", "Unknown")}: {str(e)}')
+                return None
+                
+            print(f'Tentativa {attempt + 1} falhou para {record.get("api_url", "Unknown")}. Tentando novamente em {retry_delay} segundos...')
+            await asyncio.sleep(retry_delay)
 
 async def main(df_api_urls):
     async with AsyncSession(impersonate="chrome120") as session:
@@ -90,7 +103,5 @@ cur.execute("""
 con.commit()
 
 con.close()
-
-
 
 
