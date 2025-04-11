@@ -5,19 +5,19 @@ import sqlite3
 import asyncio
 from curl_cffi import AsyncSession
 from utils import my_custom_request
-
+from sqlalchemy import create_engine
+import utils
 
 ### Iterar sobre o url,codigo de cada pais e coletar suas respectivas radios e url_api
 
 # Carregar relação country-url
-with sqlite3.connect('project.db') as con:
+engine = create_engine("postgresql+psycopg2://postgres:123@localhost:5432/radio_db")
+with engine.connect() as conn:
     query = "SELECT country, url, code from countries"
-    df_countries = pd.read_sql_query(query, con)
+    df_countries = pd.read_sql_query(query, conn)
 
 # Iterar para cada record, e coletar suas respectivas radios e url_api
 # record = df_countries.iloc[0]
-
-
 
 # Coletar estações de cada pais
 
@@ -83,15 +83,5 @@ stations_data = asyncio.run(main(df_countries))
 
 df_stations = pd.DataFrame(stations_data)
 
-con = sqlite3.connect("project.db")
-cur = con.cursor()
-
-# Salvar no banco de dados e na pasta local
-cur.execute(f"create table stations({','.join(df_stations.columns)})")
-con.commit()
-cur.executemany("INSERT INTO stations VALUES(?,?,?,?)", df_stations.values)
-con.commit()
-
-# df_stations.to_csv('Data/stations.csv',index=False)
-
-con.close()
+# Salvar no banco de dados
+utils.bulk_insert_dataframe(df_stations,'stations',engine)
